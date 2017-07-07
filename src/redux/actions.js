@@ -2,14 +2,31 @@ import fetch from 'isomorphic-fetch'
 
 const API_ROOT = 'http://api.population.io/1.0'
 
+export const REQUEST_COUNTRIES = 'REQUEST_COUNTRIES'
+export const RECEIVE_COUNTRIES = 'RECEIVE_COUNTRIES'
 export const REQUEST_WORLD_POPULATION = 'REQUEST_WORLD_POPULATION'
 export const RECEIVE_WORLD_POPULATION = 'RECEIVE_WORLD_POPULATION'
+export const REQUEST_USA_POPULATION = 'REQUEST_USA_POPULATION'
+export const RECEIVE_USA_POPULATION = 'RECEIVE_USA_POPULATION'
 export const REQUEST_SHORT_NAMES = 'REQUEST_SHORT_NAMES'
 export const RECEIVE_SHORT_NAMES = 'RECEIVE_SHORT_NAMES'
 export const REQUEST_COUNTRY = 'REQUEST_COUNTRY'
 export const RECEIVE_COUNTRY = 'RECEIVE_COUNTRY'
 export const REQUEST_RANK = 'REQUEST_RANK'
 export const RECEIVE_RANK = 'RECEIVE_RANK'
+
+export function requestCountries() {
+  return {
+    type: REQUEST_COUNTRIES
+  }
+}
+
+export function receiveCountries(data) {
+  return {
+    type: RECEIVE_COUNTRIES,
+    data
+  }
+}
 
 export function requestWorldPop() {
   return {
@@ -20,6 +37,19 @@ export function requestWorldPop() {
 export function receiveWorldPop(data) {
   return {
     type: RECEIVE_WORLD_POPULATION,
+    data
+  }
+}
+
+export function requestUSAPop() {
+  return {
+    type: REQUEST_USA_POPULATION
+  }
+}
+
+export function receiveUSAPop(data) {
+  return {
+    type: RECEIVE_USA_POPULATION,
     data
   }
 }
@@ -77,43 +107,53 @@ function listShortest(countryNames) {
   return sorted.slice(0, idx)
 }
 
-function formatCountry(populationByAge) {
-  const subGroup = populationByAge[18]
-  return {
-    overall: subGroup.total,
-    male: subGroup.males,
-    female: subGroup.females
+export function fetchCountries() {
+  return function(dispatch) {
+    dispatch(requestCountries())
+    const countries = mockData
+    dispatch(receiveCountries(countries))
   }
 }
-
 
 export function fetchWorldPop() {
   return function(dispatch) {
     dispatch(requestWorldPop())
+    const countryGroups = []
+    for (let i = 0; i < 100; i++) {
+      countryGroups.push(fetch(`${API_ROOT}/population/2017/aged/${i}`)
+        .then(response => response.json())
+        .then(json => json.reduce((sum, val) => sum + val.total, 0)))
+    }
+    return Promise.all(countryGroups)
+      .then(countries => countries.reduce((sum, val) => sum + val, 0))
+      .then(json => dispatch(receiveWorldPop(json)))
+  }
+}
+
+export function fetchUSAPop() {
+  return function(dispatch) {
+    dispatch(requestUSAPop())
     return fetch(`${API_ROOT}/population/2017/United States`)
       .then(response => response.json())
       .then(populationByAge => sumAges(populationByAge))
-      .then(json => dispatch(receiveWorldPop(json)))
+      .then(json => dispatch(receiveUSAPop(json)))
   }
 }
 
 export function fetchShortNames() {
   return function(dispatch) {
     dispatch(requestShortNames())
-    return fetch(`${API_ROOT}/population/2017/Uruguay`)
-      .then(response => response.json())
-      .then(countryNames => listShortest(mockData))
-      .then(json => dispatch(receiveShortNames(json)))
+    const shortest = listShortest(mockData)
+    dispatch(receiveShortNames(shortest))
   }
 }
 
 export function fetchCountry(country) {
   return function(dispatch) {
     dispatch(requestCountry())
-    return fetch(`${API_ROOT}/population/2017/${country}`)
+    return fetch(`${API_ROOT}/population/2017/${country}/18`)
       .then(response => response.json())
-      .then(populationByAge => formatCountry(populationByAge))
-      .then(json => dispatch(receiveCountry(country, json)))
+      .then(json => dispatch(receiveCountry(country, json[0])))
   }
 }
 
@@ -128,7 +168,6 @@ export function fetchRank(dob, sex, country) {
 
 const mockData = [
                 "Afghanistan", 
-                "AFRICA", 
                 "Albania", 
                 "Algeria", 
                 "Angola", 
@@ -137,7 +176,6 @@ const mockData = [
                 "Argentina", 
                 "Armenia", 
                 "Aruba", 
-                "ASIA", 
                 "Australia", 
                 "Australia/New Zealand", 
                 "Austria", 
@@ -197,7 +235,6 @@ const mockData = [
                 "Eritrea", 
                 "Estonia", 
                 "Ethiopia", 
-                "EUROPE", 
                 "Federated States of Micronesia", 
                 "Fiji", 
                 "Finland", 
@@ -238,7 +275,6 @@ const mockData = [
                 "Kuwait", 
                 "Kyrgyz Republic", 
                 "Lao PDR", 
-                "LATIN AMERICA AND THE CARIBBEAN", 
                 "Latvia", 
                 "Least developed countries", 
                 "Lebanon", 
@@ -280,10 +316,8 @@ const mockData = [
                 "Niger", 
                 "Nigeria", 
                 "Northern Africa", 
-                "NORTHERN AMERICA", 
                 "Northern Europe", 
                 "Norway", 
-                "OCEANIA", 
                 "Oman", 
                 "Other non-specified areas", 
                 "Pakistan", 

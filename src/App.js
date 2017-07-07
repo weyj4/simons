@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import logo from './logo.svg'
-import { fetchWorldPop, fetchShortNames, fetchCountry, fetchRank } from './redux/actions'
+import { fetchCountries, fetchWorldPop, fetchUSAPop, fetchShortNames, fetchCountry, fetchRank } from './redux/actions'
 import './App.css'
 import Country from './Country'
 
@@ -14,7 +14,11 @@ function mapStateToProps(state) {
 class App extends Component {
   constructor(props) {
     super(props)
-    this.state = {}
+    this.state = {
+      dob: new Date().toJSON().slice(0,10),
+      sex: 'male',
+      country: 'United States'
+    }
     this.changeDate = this.changeDate.bind(this)
     this.changeSex = this.changeSex.bind(this)
     this.changeCountry = this.changeCountry.bind(this)
@@ -23,6 +27,8 @@ class App extends Component {
 
   componentDidMount() {
     this.props.dispatch(fetchWorldPop())
+    this.props.dispatch(fetchUSAPop())
+    this.props.dispatch(fetchCountries())
   }
 
   changeDate(e) {
@@ -47,43 +53,61 @@ class App extends Component {
     return (
       <div className="App">
         <div className="App-header">
+          <div className="initialPopulation">
+            <div className="header">World Population</div>
+            <div>as of today</div>
+            <div>{mainData.worldPopulation}</div>
+          </div>
+          <div className="initialPopulation">
+            <div className="header">U.S. Population</div>
+            <div>as of today</div>
+            <div>{mainData.usaPopulation}</div>
+          </div>
+        </div>
+        <div className="App-body">
+          <div className="header">Shortest Country Names</div>
           <div>Countries Displayed: {mainData.countryData ? Object.keys(mainData.countryData).length : 0}</div>
           <div>Total Population Displayed: {mainData.totalDisplayedPopulation}</div>
-          <div onClick={() => dispatch(fetchShortNames())}>Fetch</div>
-          <form onSubmit={this.handleSubmit}>
-            <label>
-              DOB:
-              <input type="date" value={this.state.dob} onChange={this.changeDate} />
-            </label>
-            <label>
-              Sex:
-              <input type="radio" value="male" checked={this.state.sex === "male"} onChange={this.changeSex} />
-              <input type="radio" value="female" checked={this.state.sex === "female"} onChange={this.changeSex} />
-            </label>
-            <label>
-              Country:
-              <input type="text" value={this.state.country} onChange={this.changeCountry} />
-              <select onChange={this.changeCountry}>
-                {mainData.shortNames && mainData.shortNames.map((country) =>
-                  <option value={country}>{country}</option>
-                )}
-              </select>
-            </label>
-            <input type="submit" value="Submit" />
-          </form>
-        </div>
-        <div className="countries">
-          {mainData.shortNames && mainData.shortNames.map((name, i) =>
-            <Country 
-              fetchCountry={(i) => dispatch(fetchCountry(i))}
-              countryName={name}
-              countryData={mainData.countryData && mainData.countryData[name]}
-              key={i}
-            />
-          )}
-        </div>
-        <div className="rank">
-          {mainData.rank && <div>Your rank is: {mainData.rank.rank}</div>}
+          <button onClick={() => dispatch(fetchShortNames())}>Fetch</button>
+          <div className="countries">
+            {mainData.shortNames && mainData.shortNames.map((name, i) =>
+              <Country 
+                fetchCountry={(i) => dispatch(fetchCountry(i))}
+                countryName={name}
+                countryData={mainData.countryData && mainData.countryData[name]}
+                key={i}
+              />
+            )}
+          </div>
+          <div>
+            <form onSubmit={this.handleSubmit}>
+              <div className="rankForm">
+                <div className="rankInput">
+                  DOB:
+                  <input type="date" value={this.state.dob} onChange={this.changeDate} />
+                </div>
+                <div className="rankInput">
+                  Sex:
+                  <select onChange={this.changeCountry}>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div className="rankInput">
+                  Country:
+                  <select onChange={this.changeCountry} defaultValue="United States">
+                    {mainData.countries && mainData.countries.map((country, i) =>
+                      <option value={country} key={i}>{country}</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+              <input type="submit" value="Submit" />
+            </form>
+          </div>
+          <div className="rank">
+            {mainData.rank && <div>Your rank is: {mainData.rank.rank}</div>}
+          </div>
         </div>
       </div>
     )
